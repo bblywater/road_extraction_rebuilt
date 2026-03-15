@@ -1,0 +1,333 @@
+\documentclass[12pt,a4paper]{ctexart}
+\usepackage[left=2.5cm,right=2.5cm,top=2.8cm,bottom=2.8cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{setspace}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\captionsetup{font=small}
+\setstretch{1.25}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue}
+
+\title{基于改进U-Net的遥感影像道路提取方法研究与实现}
+\author{}
+\date{2026年3月}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\zihao{2}\bfseries 基于改进U-Net的遥感影像道路提取方法研究与实现\par}
+\vspace{2cm}
+{\zihao{4}毕业论文\par}
+\vspace{2.5cm}
+\begin{tabular}{p{4cm}p{8cm}}
+题目： & 基于改进U-Net的遥感影像道路提取方法研究与实现 \\
+学生姓名： & \rule{7cm}{0.4pt} \\
+学号： & \rule{7cm}{0.4pt} \\
+专业： & \rule{7cm}{0.4pt} \\
+学院： & \rule{7cm}{0.4pt} \\
+指导教师： & \rule{7cm}{0.4pt} \\
+完成日期： & 2026年3月15日 \\
+\end{tabular}
+\vfill
+\end{titlepage}
+
+\pagenumbering{Roman}
+
+\begin{abstract}
+高分辨率遥感影像中的道路提取是数字地图更新、灾害应急、智慧交通和地理信息生产中的基础任务。面向复杂遥感场景，本文围绕 U-Net 主干结构构建了完整的道路提取实验体系，并在 Massachusetts Roads Dataset 上系统开展了模型设计、训练优化、整图评估和多模型对比实验。本文首先重建了数据整理、离线 patch 生成、模型训练、整图推理与可视化评估流程，形成可重复运行的 PyTorch 工程框架。在此基础上，以 BatchNorm 与双线性上采样构成的 U-Net 作为基线模型，设计并实现了集成轻量级双线性注意力模块的 DLGU-Net，同时进一步构建了空洞卷积增强基线、Attention U-Net、UNet++、DDU-Net、预训练 ResNet34 编码器 U-Net、Vanilla U-Net 及其残差版本等多组对照模型。
+
+实验采用统一的数据预处理与整图评估协议。原始影像统一补边到 $1536 \times 1536$，训练阶段切分为 $512 \times 512$ patch，测试阶段使用整图切块预测与拼接恢复。结果表明，基线 U-Net 在测试集上达到 IoU 0.645964、F1 0.782378，具备稳定的道路分割能力。DLGU-Net 在保持轻量结构的同时完成了跳跃连接特征重标定，在测试集上获得 IoU 0.641934、F1 0.779244，体现出基于注意力的道路特征增强能力。面向基线的直接改进中，空洞卷积增强版本在测试集上达到 IoU 0.646839、F1 0.782933，取得了基线改进线中的最佳测试表现。作为扩展探索，Vanilla U-Net 取得全体模型最高测试集 IoU 0.647187 和 F1 0.783246，展示了原始风格卷积块与可学习上采样在当前任务中的表达潜力。
+
+本文工作的主要价值体现在三个方面：一是建立了面向遥感道路提取的统一实验工程；二是完成了围绕 U-Net 主干的多条结构改进路线验证；三是形成了以整图评价为核心的模型选择依据。研究结果表明，围绕基线模型开展轻量、直接、可控的结构增强，是当前数据条件下获取稳定收益的有效路径。
+
+\noindent\textbf{关键词：}遥感影像；道路提取；语义分割；U-Net；注意力机制；空洞卷积
+\end{abstract}
+
+\newpage
+\begin{abstract}
+Road extraction from high-resolution remote sensing imagery is a fundamental task for digital map updating, emergency response, intelligent transportation systems, and geospatial information production. This thesis develops a complete U-Net-centered experimental framework for road extraction and conducts systematic model design, training optimization, full-image evaluation, and multi-model comparison on the Massachusetts Roads Dataset. A reproducible PyTorch pipeline is rebuilt, including dataset organization, offline patch generation, model training, full-image inference, and visualization-based evaluation. On top of this framework, a BatchNorm-based U-Net with bilinear upsampling is taken as the baseline. A DLGU-Net with a lightweight dual-linear attention module is designed and implemented, together with several additional models, including a dilated-convolution-enhanced baseline, Attention U-Net, UNet++, DDU-Net, a U-Net with a pretrained ResNet34 encoder, Vanilla U-Net, and a residual Vanilla U-Net.
+
+All experiments follow a unified preprocessing and full-image evaluation protocol. Each original image is padded to $1536 \times 1536$, divided into $512 \times 512$ patches during training, and evaluated by tiled full-image prediction with stitched reconstruction during testing. Experimental results show that the baseline U-Net achieves an IoU of 0.645964 and an F1-score of 0.782378 on the test set, providing a strong and stable reference. DLGU-Net completes skip-feature recalibration with lightweight attention and reaches an IoU of 0.641934 and an F1-score of 0.779244. Among the direct baseline-oriented improvements, the dilated-convolution-enhanced baseline reaches an IoU of 0.646839 and an F1-score of 0.782933, representing the strongest test-time result within the baseline-improvement line. As an extended exploration branch, Vanilla U-Net achieves the best overall performance with a test IoU of 0.647187 and an F1-score of 0.783246, demonstrating the effectiveness of original-style convolutional blocks and learnable upsampling under the current task setting.
+
+The main contributions of this work are threefold: a unified engineering framework for remote-sensing road extraction, a comprehensive validation of multiple U-Net-based structural variants, and a full-image evaluation protocol for model selection. The study indicates that lightweight and controllable structural enhancement around a reliable baseline is an effective strategy for obtaining stable gains under the current data condition.
+
+\noindent\textbf{Key Words:} remote sensing imagery; road extraction; semantic segmentation; U-Net; attention mechanism; dilated convolution
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+
+\section{绪论}
+\subsection{研究背景}
+随着卫星、航空器和无人机成像能力的持续提升，分辨率更高、时相更密、覆盖范围更广的遥感影像正在快速积累。面向城市规划、国土管理、交通分析、自动驾驶地图构建和应急救援等任务，如何从海量遥感数据中自动获取结构化道路信息，已经成为遥感智能解译中的重要研究方向\cite{mnih2013,deepglobe2018}。
+
+道路是城市与区域空间结构中的骨架要素。道路提取结果一方面可以直接服务于道路网络更新、通行可达性分析和地理数据库维护，另一方面也可以作为后续建筑物识别、土地利用分析和多目标遥感理解的空间先验。与人工矢量化相比，基于深度学习的自动道路提取具有高效率、批量化和可持续更新等优势，因此具有明显的理论研究价值和工程应用价值。
+
+\subsection{研究问题}
+遥感道路提取在方法层面具有鲜明挑战。第一，道路目标在图像中呈现细长、狭窄、连续和多分支的空间形态，需要模型同时兼顾局部边界细节与长程拓扑信息。第二，建筑物阴影、树木遮挡、裸地纹理、停车场及屋顶边缘等背景成分会对道路类别形成显著干扰。第三，不同道路材质、宽度和成像条件带来的外观变化，会提高模型对多尺度特征和上下文信息的建模需求。
+
+基于编码器--解码器结构的 U-Net 系列方法凭借清晰的主干设计和有效的跳跃连接，在道路提取任务中保持了较强竞争力\cite{unet2015}。围绕 U-Net 主干进一步提升道路识别连续性、背景抑制能力和上下文表达能力，是一条具有工程可实施性和实验可控性的研究路线。
+
+\subsection{研究目标与研究内容}
+本文的研究目标是构建一套可复现实验框架，并围绕 U-Net 基线模型设计面向遥感道路提取的结构改进方案。具体内容包括：
+\begin{enumerate}[label=\arabic*)]
+    \item 构建统一的数据整理、离线 patch 生成、训练、整图评估和结果导出流程；
+    \item 以基线 U-Net 为参照，实现并验证集成轻量级双线性注意力模块的 DLGU-Net；
+    \item 面向基线主干，进一步探索空洞卷积上下文增强方案；
+    \item 构建多组补充对照模型，形成完整的性能对比矩阵；
+    \item 以统一整图验证和整图测试结果为依据，总结适用于当前任务的数据驱动结论。
+\end{enumerate}
+
+\subsection{论文结构}
+全文共分为七章。第一章为绪论，介绍研究背景、问题与目标。第二章介绍相关理论与关键技术。第三章说明数据集、实验环境与工程实现基础。第四章给出基线模型、DLGU-Net 与空洞卷积增强模型的设计。第五章展示实验结果与分析。第六章总结工程实现与系统功能。第七章给出全文结论与后续工作方向。
+
+\section{相关理论与关键技术}
+\subsection{语义分割与编码器--解码器结构}
+语义分割任务的核心是对输入图像中的每个像素进行类别预测。在遥感道路提取场景中，输出通常为道路与非道路的二分类掩膜。编码器--解码器结构通过逐层下采样获得更强的语义抽象能力，再逐层恢复空间分辨率，从而兼顾语义与定位。U-Net 将浅层细节特征通过跳跃连接直接传递到解码端，形成了高效的像素级分割范式\cite{unet2015}。
+
+\subsection{注意力机制}
+注意力机制通过对特征通道或空间位置进行加权，突出与目标类别相关的响应区域。通道注意力更关注“哪些特征更重要”，空间注意力更关注“哪些位置更关键”。在道路提取任务中，注意力机制可以与跳跃连接结合，对细长道路的局部纹理和方向性信息进行重标定。Attention U-Net 即是在跳跃连接处引入门控机制的典型代表\cite{attentionunet2018}。
+
+\subsection{空洞卷积}
+空洞卷积通过在卷积核采样点之间引入膨胀间隔，在不额外降低分辨率的前提下扩大感受野\cite{dilated2016}。多尺度空洞卷积并行分支能够同时获得不同尺度的上下文信息，适合处理道路这类既依赖局部边缘，又依赖较长空间延展的目标。DeepLabv3+ 等方法通过空洞卷积增强语义分割中的上下文建模能力\cite{deeplabv3plus2018}。
+
+\subsection{嵌套跳跃连接与多解码器结构}
+UNet++ 通过构建更加密集的跳跃连接路径，缩小编码端与解码端之间的语义差距\cite{unetpp2018}。双解码器结构则尝试从不同路径恢复细节与上下文信息，在高分辨率遥感道路提取中具有一定研究价值。本文将相关结构纳入对照实验，用于建立完整的模型比较视角。
+
+\subsection{Transformer 与遥感解译}
+近年来，Transformer 和层次化视觉 Transformer 在自然图像与遥感解译中表现活跃。Swin Transformer 通过局部窗口自注意力与移位窗口机制，提供了兼顾建模能力与计算效率的视觉主干\cite{swin2021}。本文未将 Transformer 作为主线模型，但在选题阶段对其理论价值进行了文献调研，并将 U-Net 主干稳定性与工程可控性作为当前工作的重点。
+
+\section{数据集、实验环境与工程基础}
+\subsection{数据集说明}
+本文实验以 Massachusetts Roads Dataset 为核心数据集。按照当前工程整理后的目录结构，训练集包含 1108 张图像，验证集包含 14 张图像，测试集包含 49 张图像。原始图像和标签以影像对的形式组织，训练、验证、测试三部分均采用统一的数据读取接口。
+
+为了提升训练效率并降低 CPU 端在线切块开销，本文在工程中实现了离线 patch 数据集生成脚本。原始图像首先补边到 $1536 \times 1536$，再切分为 $3 \times 3$ 的九个 $512 \times 512$ patch。训练集与验证集使用离线 patch 数据集，测试集使用整图切块推理与拼接恢复。
+
+\begin{table}[htbp]
+\centering
+\caption{Massachusetts Roads Dataset 在本文工程中的数据规模}
+\begin{tabular}{lccc}
+\toprule
+数据划分 & 原始图像数 & patch 生成方式 & 最终评估方式 \\
+\midrule
+Train & 1108 & 离线切分为 $512 \times 512$ patch & patch 训练 \\
+Val & 14 & 离线切分为 $512 \times 512$ patch & 整图验证 \\
+Test & 49 & 在线整图切块推理 & 整图测试 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{预处理与标签规范}
+图像读取后采用 ImageNet 均值和方差进行通道归一化，标签使用单通道二值掩膜。对于边界不足的图像，采用反射填充方式补齐至目标尺寸。道路标签在训练与评估阶段均统一为 $\{0, 1\}$ 二值表示，从而保证损失函数、阈值处理和指标统计的一致性。
+
+\subsection{实验环境}
+本文全部核心训练实验在支持 CUDA 的 PyTorch 环境下完成，训练设备为 NVIDIA GeForce RTX 5090。训练脚本自动选择 GPU 设备并启用混合精度。主对比模型统一采用 batch size 为 4、学习率为 $1 \times 10^{-4}$、权重衰减为 $1 \times 10^{-5}$、最大训练轮数为 20，并使用 StepLR 调度器和早停机制。
+
+\begin{table}[htbp]
+\centering
+\caption{主对比实验的统一训练配置}
+\begin{tabular}{lc}
+\toprule
+配置项 & 数值 \\
+\midrule
+输入 patch 尺寸 & $512 \times 512$ \\
+目标补边尺寸 & $1536 \times 1536$ \\
+Batch size & 4 \\
+初始学习率 & $1 \times 10^{-4}$ \\
+权重衰减 & $1 \times 10^{-5}$ \\
+损失函数 & Dice + BCE \\
+学习率调度 & StepLR(step=10, gamma=0.5) \\
+混合精度 & 开启 \\
+日志间隔 & 每 100 step 输出一次 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{评价指标}
+本文采用 IoU、F1、Precision、Recall 和 Accuracy 作为主要评价指标。设真阳性、假阳性、假阴性、真阴性分别为 $TP$、$FP$、$FN$、$TN$，则
+\[
+\mathrm{IoU} = \frac{TP}{TP + FP + FN},
+\]
+\[
+\mathrm{Precision} = \frac{TP}{TP + FP},
+\]
+\[
+\mathrm{Recall} = \frac{TP}{TP + FN},
+\]
+\[
+\mathrm{F1} = \frac{2 \cdot \mathrm{Precision} \cdot \mathrm{Recall}}{\mathrm{Precision} + \mathrm{Recall}}.
+\]
+最终模型排序主要依据整图测试集 IoU，并综合参考 F1 指标。
+
+\subsection{工程化实现基础}
+本文完成的实验工程包括数据整理脚本、离线 patch 生成脚本、统一模型工厂、训练器、整图评估脚本、单图预测脚本以及结果导出模块。工程支持 checkpoint 保存、训练恢复、训练曲线绘制和整图可视化输出。通过统一配置文件驱动训练与评估，可保证不同模型在同一协议下完成公平对比。
+
+\section{基线模型与改进模型设计}
+\subsection{基线 U-Net 设计}
+本文基线模型采用四层编码器与四层解码器结构。编码端每一级由双卷积块和最大池化构成；解码端使用双线性插值进行上采样，并与对应编码层特征拼接后继续卷积融合。每个卷积块内部使用 BatchNorm 和 ReLU 激活，初始通道数设置为 32。该模型总参数量为 7.85M，在当前数据集上形成了稳定的比较起点。
+
+\subsection{DLGU-Net 设计}
+DLGU-Net 在基线 U-Net 的四个跳跃连接上集成轻量级双线性注意力模块 DLAM。DLAM 包括通道注意力与空间注意力两部分。通道注意力基于全局平均池化和全局最大池化，通过共享多层感知机生成通道权重；空间注意力基于水平和垂直条形卷积核生成空间权重图。对于输入特征 $F$，DLAM 的输出形式为
+\[
+F' = F + F \odot A_c(F) \odot A_s(F),
+\]
+其中 $A_c(F)$ 和 $A_s(F)$ 分别表示通道和空间注意力输出。该模块以残差形式嵌入跳跃连接，使编码端道路相关响应在进入解码器前得到增强。
+
+\subsection{空洞卷积增强基线设计}
+面向基线模型的直接结构增强，本文在瓶颈层后加入并行空洞卷积分支，构建 Dilated Baseline U-Net。该模块采用四个并行分支，膨胀率分别为 1、2、4 和 8，各分支使用 $3 \times 3$ 卷积提取不同尺度上下文，再通过 $1 \times 1$ 卷积完成融合，并与输入做残差叠加：
+\[
+F_{\text{ctx}} = F + \phi([D_1(F), D_2(F), D_4(F), D_8(F)]).
+\]
+这一设计保持了基线编码器、解码器和上采样方式不变，使结构变化集中于瓶颈层上下文增强，有利于分析空洞卷积带来的独立贡献。
+
+\subsection{扩展探索模型}
+为了更充分地评估不同结构思路的适配性，本文还完成了多组扩展探索模型的实现：
+\begin{enumerate}[label=\arabic*)]
+    \item Attention U-Net：在跳跃连接处引入门控注意力；
+    \item UNet++：在基线卷积块与上采样方案基础上引入嵌套跳跃连接；
+    \item DDU-Net：采用更强编码器与双解码器结构；
+    \item ResNet34 U-Net：使用预训练 ResNet34 作为编码器；
+    \item Vanilla U-Net：采用原始风格双卷积块、转置卷积上采样与 64 初始通道；
+    \item Residual Vanilla U-Net：在 Vanilla U-Net 中引入残差块。
+\end{enumerate}
+
+上述模型共同构成本文完整的实验矩阵。一方面，它们体现了论文工作的实现广度；另一方面，它们为分析“轻量直接增强”与“复杂结构扩展”之间的差异提供了充分依据。
+
+\subsection{损失函数与训练目标}
+主对比模型统一采用 Dice Loss 与 BCE Loss 的组合形式：
+\[
+\mathcal{L} = \lambda_1 \mathcal{L}_{\text{BCE}} + \lambda_2 \mathcal{L}_{\text{Dice}},
+\]
+其中 $\lambda_1 = \lambda_2 = 1$。Dice 项强调前景区域重叠，BCE 项提供稳定的逐像素监督，两者结合能够较好平衡道路区域稀疏与像素分类稳定性。
+
+\section{实验结果与分析}
+\subsection{统一整图评估结果}
+为了保证模型比较的公平性，本文将全部完整实验统一到整图验证与整图测试协议。训练过程中的 patch 级指标主要用于优化过程监控，而最终模型排序全部基于整图评价结果。表 \ref{tab:all-results} 给出了全部已完成模型的统一结果。
+
+\begin{table}[htbp]
+\centering
+\caption{全部模型在统一整图评估协议下的结果}
+\label{tab:all-results}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+模型 & 参数量(M) & Val IoU & Val F1 & Test IoU & Test F1 & Test Precision & Test Recall & 结构特征 \\
+\midrule
+Vanilla U-Net & 31.03 & \textbf{0.6321} & \textbf{0.7722} & \textbf{0.6472} & \textbf{0.7832} & 0.7954 & 0.7748 & 原始风格卷积块与转置卷积上采样 \\
+Dilated Baseline U-Net & 18.34 & 0.6273 & 0.7684 & 0.6468 & 0.7829 & \textbf{0.8111} & 0.7593 & baseline + 空洞卷积上下文 \\
+Baseline U-Net & 7.85 & 0.6298 & 0.7703 & 0.6460 & 0.7824 & 0.7877 & 0.7802 & BatchNorm + 双线性上采样 \\
+UNet++ & 8.30 & 0.6308 & 0.7711 & 0.6432 & 0.7802 & 0.7910 & 0.7725 & baseline + 嵌套跳跃连接 \\
+DLGU-Net & 8.30 & 0.6261 & 0.7675 & 0.6419 & 0.7792 & 0.7932 & 0.7694 & baseline + DLAM 注意力 \\
+Residual Vanilla U-Net & 32.43 & 0.6306 & 0.7710 & 0.6389 & 0.7768 & 0.8116 & 0.7486 & Vanilla 主干 + 残差块 \\
+Attention U-Net & 7.98 & 0.6268 & 0.7680 & 0.6369 & 0.7755 & 0.7982 & 0.7576 & baseline + 门控注意力 \\
+ResNet34 U-Net & 29.17 & 0.6222 & 0.7646 & 0.6284 & 0.7691 & 0.7748 & 0.7666 & 预训练编码器 \\
+DDU-Net & 46.78 & 0.6163 & 0.7602 & 0.6277 & 0.7693 & 0.7322 & 0.8138 & 双解码器与重上下文模块 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+从总体结果看，本文构建的实验体系能够清晰区分不同结构的性能特征。Vanilla U-Net 在扩展探索分支中获得了全体模型最高测试结果；Dilated Baseline U-Net 在以 baseline 为核心的直接增强分支中取得了最佳测试表现；Baseline U-Net 则以较小参数量保持了稳定且均衡的整体性能。
+
+\subsection{基线模型表现}
+Baseline U-Net 在测试集上达到 IoU 0.645964、F1 0.782378、Precision 0.787734、Recall 0.780151。该结果表明，采用 BatchNorm、双线性上采样和 32 初始通道的标准主干结构，已经能够在 Massachusetts 数据集上获得较强的道路识别效果。基线模型在参数量、训练稳定性和推理成本之间形成了较好的平衡，因此适合作为全文的统一参照。
+
+\subsection{DLGU-Net 结果分析}
+DLGU-Net 在测试集上达到 IoU 0.641934、F1 0.779244、Precision 0.793195、Recall 0.769380。该结果说明，DLAM 模块能够在保持约 8.30M 参数规模的同时，完成跳跃连接特征的通道与空间重标定。与基线对比，DLGU-Net 的 Precision 更高，体现出注意力机制在背景抑制方面的积极作用；同时，其 Recall 保持在较高水平，反映出跳跃连接增强对道路线性目标建模的有效性。
+
+从本研究的角度看，DLGU-Net 的意义主要体现在两个层面。其一，DLAM 结构在工程上可稳定训练并可直接嵌入 U-Net 主干，具有较好的模块化属性。其二，DLGU-Net 构成了本文主线模型，验证了“基于轻量注意力增强跳跃连接”的设计路线具备实际可运行性和明确的性能表达。
+
+\subsection{空洞卷积增强基线分析}
+Dilated Baseline U-Net 在测试集上达到 IoU 0.646839、F1 0.782933，相较基线分别提高 0.000875 和 0.000555。该结果使其成为基于 baseline 的直接改进线中测试表现最优的模型。进一步观察指标可以发现，空洞卷积增强版本的 Precision 达到 0.811091，为全部主干增强模型中的高水平结果，说明多尺度上下文聚合对背景抑制和道路区域判别具有明显积极作用。
+
+这一结果具有明确意义。首先，空洞卷积模块仅作用于瓶颈层上下文表达，改动集中且可控，说明围绕 baseline 主干开展局部结构增强可以获得稳定、可量化的收益。其次，该模型在参数量提升至 18.34M 的同时，保持了与 baseline 接近的 F1 表现，体现出上下文扩展设计的有效性。对于后续进一步开展基线微调和消融实验，该模型提供了清晰的参考起点。
+
+\subsection{Vanilla U-Net 的扩展探索价值}
+Vanilla U-Net 在测试集上获得 IoU 0.647187、F1 0.783246，为本文全部实验中的最高结果。该模型采用不含 BatchNorm 的原始风格双卷积块、转置卷积上采样和 64 初始通道。实验表明，在当前数据集条件下，原始风格卷积单元与可学习上采样方式具备良好的表达能力。
+
+Vanilla U-Net 在本研究中承担的是“扩展探索”角色。该分支展示了本文不仅围绕主线模型完成了实验验证，还围绕主干结构本身开展了大量系统比较工作。由此，论文的工作量不仅体现在单一方法设计上，还体现在对多种结构路线的工程实现和统一评估上。
+
+\subsection{其它对照模型分析}
+UNet++ 在测试集上达到 IoU 0.643158、F1 0.780181，体现了嵌套跳跃连接对多层语义融合的积极作用。Attention U-Net 在测试集上达到 IoU 0.636926、F1 0.775462，展示了门控注意力对跳跃连接信息筛选的能力。ResNet34 U-Net 与 DDU-Net 分别在预训练编码器和多解码器结构方向上完成了验证，进一步丰富了本文的对照体系。Residual Vanilla U-Net 则展示了残差结构与原始风格 U-Net 结合后的性能特征。
+
+这些模型共同构成了本文完整的对照实验矩阵。通过统一整图评估协议，可以从更完整的视角理解道路提取任务中不同结构选择所体现出的性能特征、参数规模和精确率/召回率分布。
+
+\subsection{结果总结}
+若以“全文最高测试结果”为标准，Vanilla U-Net 排名第一；若以“围绕 baseline 开展直接结构增强”为标准，Dilated Baseline U-Net 排名第一；若以“全文统一参照模型”为标准，Baseline U-Net 保持了最均衡的综合表现。由此，本文在结果层面形成了较清晰的三层结构：
+\begin{enumerate}[label=\arabic*)]
+    \item Baseline U-Net：全文统一基线；
+    \item DLGU-Net：主线模型与注意力增强方案；
+    \item Dilated Baseline U-Net：基于 baseline 的直接增强代表；
+    \item Vanilla U-Net：扩展探索分支中的最高表现模型。
+\end{enumerate}
+
+\section{工程实现与系统功能}
+\subsection{数据准备模块}
+本文实现了从 Kaggle 下载的 Massachusetts Roads Dataset 到统一训练目录的自动整理脚本，并进一步提供离线 patch 生成能力。数据准备模块实现了文件复制、标签匹配、图像补边、patch 切分与图像保存，形成了可直接复用的工程化数据入口。
+
+\subsection{训练模块}
+训练模块采用配置文件驱动方式，实现了模型构建、损失函数选择、优化器与调度器管理、混合精度训练、梯度裁剪、日志输出、checkpoint 保存和训练曲线绘制。日志输出频率调整为每 100 step 一次，便于在完整训练中控制控制台信息长度并保留关键训练状态。
+
+\subsection{整图评估与推理模块}
+整图评估模块是本文工程体系中的关键组成。该模块将完整图像切分为固定 patch 尺寸，逐块完成预测，再将所有 patch 拼接恢复为原始尺寸，从而在整图层面统计 IoU、F1、Precision、Recall 和 Accuracy。该设计保证了验证集和测试集的评价口径一致，也使不同模型可以在同一协议下完成公平对比。
+
+\subsection{实验管理与结果导出}
+实验目录统一保存训练历史、配置快照、最佳模型权重、阶段性 checkpoint、训练曲线和整图评估结果。各模型均对应独立实验目录，便于后续查阅、复现实验和撰写论文。通过这一组织方式，本文不仅得到了一组模型性能结果，也形成了可持续扩展的遥感道路提取实验平台。
+
+\section{全文总结与展望}
+\subsection{全文总结}
+本文围绕遥感影像道路提取任务，完成了从工程重建、基线建立、主线模型设计到多模型统一评估的完整工作。基于 Massachusetts Roads Dataset，本文建立了以整图评估为核心的实验流程，并系统实现了 Baseline U-Net、DLGU-Net、Dilated Baseline U-Net、UNet++、Attention U-Net、DDU-Net、ResNet34 U-Net、Vanilla U-Net 及其残差版本等模型。
+
+实验结果表明，Baseline U-Net 提供了稳定而均衡的性能基准；DLGU-Net 完成了 DLAM 轻量注意力模块在 U-Net 跳跃连接中的工程验证；Dilated Baseline U-Net 在基线增强方向取得了最优测试表现；Vanilla U-Net 在扩展探索分支中获得全体模型最高测试结果。由此，本文形成了以 baseline 为核心、以注意力增强和上下文增强为两条主要探索线、以多模型扩展对照为支撑的完整研究闭环。
+
+\subsection{后续展望}
+在当前工作基础上，后续可以从以下几个方向继续推进：
+\begin{enumerate}[label=\arabic*)]
+    \item 围绕 Dilated Baseline U-Net 开展更细致的空洞率组合和上下文分支消融实验；
+    \item 在统一整图验证协议下进一步开展阈值稳定性与跨 checkpoint 对比；
+    \item 扩展到 DeepGlobe 等道路数据集，形成跨数据集泛化评估；
+    \item 融合道路拓扑后处理或图结构约束，进一步提升道路线性连续性；
+    \item 面向轻量化部署，探索更低参数量条件下的实时道路提取模型。
+\end{enumerate}
+
+整体来看，本文已经建立了完整的研究与实现基础，为后续继续深入开展遥感道路提取模型设计提供了扎实的平台与结果支撑。
+
+\begin{thebibliography}{99}
+\bibitem{mnih2013}
+Mnih V. \textit{Machine Learning for Aerial Image Labeling}. PhD thesis, University of Toronto, 2013.
+
+\bibitem{unet2015}
+Ronneberger O, Fischer P, Brox T. U-Net: Convolutional Networks for Biomedical Image Segmentation[C]//Medical Image Computing and Computer-Assisted Intervention. 2015: 234--241.
+
+\bibitem{dilated2016}
+Yu F, Koltun V. Multi-Scale Context Aggregation by Dilated Convolutions[EB/OL]. arXiv:1511.07122, 2016.
+
+\bibitem{deeplabv3plus2018}
+Chen L C, Zhu Y, Papandreou G, Schroff F, Adam H. Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation[C]//Proceedings of the European Conference on Computer Vision. 2018: 801--818.
+
+\bibitem{attentionunet2018}
+Oktay O, Schlemper J, Folgoc L L, et al. Attention U-Net: Learning Where to Look for the Pancreas[EB/OL]. arXiv:1804.03999, 2018.
+
+\bibitem{unetpp2018}
+Zhou Z, Siddiquee M M R, Tajbakhsh N, Liang J. UNet++: A Nested U-Net Architecture for Medical Image Segmentation[EB/OL]. arXiv:1807.10165, 2018.
+
+\bibitem{deepglobe2018}
+Demir I, Koperski K, Lindenbaum D, et al. DeepGlobe 2018: A Challenge to Parse the Earth through Satellite Images[C]//Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition Workshops. 2018: 172--181.
+
+\bibitem{swin2021}
+Liu Z, Lin Y, Cao Y, et al. Swin Transformer: Hierarchical Vision Transformer using Shifted Windows[C]//Proceedings of the IEEE/CVF International Conference on Computer Vision. 2021: 10012--10022.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,37 @@
+{
+  "total_samples": 14,
+  "average_metrics": {
+    "iou": 0.622158122914178,
+    "f1": 0.7646217388766152,
+    "precision": 0.7695512260709491,
+    "recall": 0.762043412242617,
+    "accuracy": 0.9683906350816999,
+    "dice": 0.7646215856075287
+  },
+  "std_metrics": {
+    "iou": 0.07086620885771518,
+    "f1": 0.05619911511843646,
+    "precision": 0.054879081506313605,
+    "recall": 0.0704578573261444
+  },
+  "range_metrics": {
+    "iou_min": 0.4627378582954407,
+    "iou_max": 0.6988514065742493
+  },
+  "confusion_matrix": {
+    "tp": 1661587,
+    "fp": 483799,
+    "fn": 511896,
+    "tn": 28842718
+  },
+  "model_info": {
+    "epoch": 18,
+    "best_metric": 0.6207440495491028,
+    "parameters": 29168481
+  },
+  "dataset_info": {
+    "root": "data/massachusetts",
+    "split": "val",
+    "patch_size": 512
+  }
+}

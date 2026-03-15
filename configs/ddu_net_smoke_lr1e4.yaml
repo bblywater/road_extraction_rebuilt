@@ -1,0 +1,55 @@
+dataset:
+  name: massachusetts
+  root: data/massachusetts
+  patch_root: data/massachusetts_patches
+  patch_size: 512
+  target_size: 1536
+  corrupted_files: []
+  use_prepatched_train: true
+  use_prepatched_val: true
+  use_prepatched_test: false
+
+model:
+  name: ddu_net
+  in_channels: 3
+  out_channels: 1
+  init_channels: 32
+  pretrained: true
+  freeze_encoder_bn: true
+  aux_weight: 0.4
+  dcam_channels: 512
+  decoder_channels: [512, 256, 128, 64]
+  cbam_reduction: 16
+
+loss:
+  name: focal
+  from_logits: true
+  alpha: 0.75
+  gamma: 2.0
+  reduction: mean
+
+training:
+  epochs: 1
+  batch_size: 4
+  learning_rate: 0.0001
+  optimizer: adamw
+  weight_decay: 0.0001
+  amp: true
+  gradient_clip: 1.0
+  num_workers: 0
+  num_workers_val: 0
+  pin_memory: true
+  pin_memory_val: false
+  log_interval: 100
+  scheduler:
+    name: poly
+    power: 0.9
+  early_stopping:
+    patience: 2
+    min_delta: 0.0005
+
+output:
+  experiment_name: ddu_net_smoke_lr1e4
+  root: experiments
+  save_every: 1
+  metric: iou

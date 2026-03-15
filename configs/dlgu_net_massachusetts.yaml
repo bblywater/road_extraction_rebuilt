@@ -1,0 +1,42 @@
+dataset:
+  name: massachusetts
+  root: data/massachusetts
+  patch_size: 512
+  target_size: 1536
+  corrupted_files: []
+
+model:
+  name: dlgu_net
+  in_channels: 3
+  out_channels: 1
+  init_channels: 32
+  dlam:
+    reduction: 16
+    spatial_kernel: 5
+
+loss:
+  name: dice
+  from_logits: true
+
+training:
+  epochs: 30
+  batch_size: 4
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+  amp: false
+  gradient_clip: 1.0
+  num_workers: 0
+  pin_memory: false
+  scheduler:
+    name: steplr
+    step_size: 10
+    gamma: 0.5
+  early_stopping:
+    patience: 8
+    min_delta: 0.001
+
+output:
+  experiment_name: dlgu_net_massachusetts
+  root: experiments
+  save_every: 5
+  metric: iou

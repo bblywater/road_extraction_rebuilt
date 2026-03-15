@@ -1,0 +1,58 @@
+{
+  "dataset": {
+    "name": "massachusetts",
+    "root": "data/massachusetts",
+    "patch_root": "data/massachusetts_patches",
+    "patch_size": 512,
+    "target_size": 1536,
+    "corrupted_files": [],
+    "use_prepatched_train": true,
+    "use_prepatched_val": true,
+    "use_prepatched_test": false
+  },
+  "model": {
+    "name": "attention_unet",
+    "in_channels": 3,
+    "out_channels": 1,
+    "init_channels": 32,
+    "apply_sigmoid": false
+  },
+  "loss": {
+    "name": "dice_bce",
+    "from_logits": true,
+    "bce_weight": 1.0,
+    "dice_weight": 1.0,
+    "pos_weight": 1.0
+  },
+  "training": {
+    "epochs": 20,
+    "batch_size": 4,
+    "learning_rate": 0.0001,
+    "weight_decay": 1e-05,
+    "amp": true,
+    "gradient_clip": 1.0,
+    "num_workers": 4,
+    "num_workers_val": 0,
+    "pin_memory": true,
+    "pin_memory_val": false,
+    "persistent_workers": true,
+    "prefetch_factor": 4,
+    "log_interval": 100,
+    "scheduler": {
+      "name": "steplr",
+      "step_size": 10,
+      "gamma": 0.5
+    },
+    "early_stopping": {
+      "patience": 8,
+      "min_delta": 0.001
+    }
+  },
+  "output": {
+    "experiment_name": "attention_unet_massachusetts_full",
+    "root": "experiments",
+    "save_every": 5,
+    "metric": "iou"
+  },
+  "_config_dir": "C:\\Users\\Haoyu\\Downloads\\road_extraction_project (2)\\road_extraction_project\\road_extraction_rebuilt"
+}
