@@ -1,0 +1,38 @@
+% !TeX encoding = UTF-8
+% !TeX program = xelatex
+
+\documentclass[degree=bachelor, degree-type=academic]{xtuthesis}
+
+\input{xtusetup.tex}
+
+\begin{document}
+
+\maketitle
+\declareandcopyrightpage
+
+\frontmatter
+\input{data/abstract.tex}
+\tableofcontents
+\listoftables
+\listoffigures
+\input{data/denotation}
+
+\mainmatter
+\input{data/chap01}
+\input{data/chap02}
+\input{data/chap03}
+\input{data/chap04}
+\input{data/chap05}
+\input{data/chap06}
+\input{data/chap07}
+
+\backmatter
+\bibliographystyle{xtuthesis-bachelor}
+\bibliography{ref/refs}
+
+% \input{data/acknowledgements}
+
+\appendix
+% \input{data/appendix}
+
+\end{document}

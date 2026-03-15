@@ -1,0 +1,73 @@
+\contentsline {chapter}{表格索引}{VII}{}%
+\contentsline {chapter}{插图索引}{VIII}{}%
+\contentsline {chapter}{\numberline {第1章}绪论}{1}{}%
+\contentsline {section}{\numberline {1.1}研究背景}{1}{}%
+\contentsline {section}{\numberline {1.2}研究意义}{1}{}%
+\contentsline {section}{\numberline {1.3}国内外研究现状}{2}{}%
+\contentsline {subsection}{\numberline {1.3.1}传统方法}{2}{}%
+\contentsline {subsection}{\numberline {1.3.2}深度学习方法}{2}{}%
+\contentsline {subsection}{\numberline {1.3.3}当前研究特点}{2}{}%
+\contentsline {section}{\numberline {1.4}研究目标与研究内容}{2}{}%
+\contentsline {section}{\numberline {1.5}本文的主要工作}{3}{}%
+\contentsline {section}{\numberline {1.6}论文结构安排}{3}{}%
+\contentsline {chapter}{\numberline {第2章}相关理论与关键技术}{4}{}%
+\contentsline {section}{\numberline {2.1}语义分割基础}{4}{}%
+\contentsline {section}{\numberline {2.2}U-Net 结构}{4}{}%
+\contentsline {section}{\numberline {2.3}注意力机制}{4}{}%
+\contentsline {subsection}{\numberline {2.3.1}通道注意力}{4}{}%
+\contentsline {subsection}{\numberline {2.3.2}空间注意力}{5}{}%
+\contentsline {subsection}{\numberline {2.3.3}跳跃连接中的注意力}{5}{}%
+\contentsline {section}{\numberline {2.4}空洞卷积与多尺度上下文}{5}{}%
+\contentsline {section}{\numberline {2.5}损失函数}{5}{}%
+\contentsline {subsection}{\numberline {2.5.1}二元交叉熵损失}{5}{}%
+\contentsline {subsection}{\numberline {2.5.2}Dice 损失}{5}{}%
+\contentsline {subsection}{\numberline {2.5.3}组合损失}{6}{}%
+\contentsline {section}{\numberline {2.6}评价指标}{6}{}%
+\contentsline {section}{\numberline {2.7}整图评估协议}{6}{}%
+\contentsline {chapter}{\numberline {第3章}数据集构建、实验平台与工程优化}{7}{}%
+\contentsline {section}{\numberline {3.1}数据集整理}{7}{}%
+\contentsline {section}{\numberline {3.2}预处理流程}{7}{}%
+\contentsline {section}{\numberline {3.3}离线 patch 数据集构建}{8}{}%
+\contentsline {section}{\numberline {3.4}实验平台}{8}{}%
+\contentsline {section}{\numberline {3.5}统一训练配置}{10}{}%
+\contentsline {section}{\numberline {3.6}工程优化效果}{10}{}%
+\contentsline {section}{\numberline {3.7}整图验证与整图测试}{11}{}%
+\contentsline {chapter}{\numberline {第4章}模型设计与实现}{12}{}%
+\contentsline {section}{\numberline {4.1}基线模型设计}{12}{}%
+\contentsline {section}{\numberline {4.2}DLGU-Net 设计}{12}{}%
+\contentsline {subsection}{\numberline {4.2.1}设计思想}{12}{}%
+\contentsline {subsection}{\numberline {4.2.2}DLAM 模块结构}{13}{}%
+\contentsline {subsection}{\numberline {4.2.3}DLGU-Net 网络集成方式}{14}{}%
+\contentsline {section}{\numberline {4.3}空洞卷积增强基线设计}{14}{}%
+\contentsline {subsection}{\numberline {4.3.1}设计目标}{14}{}%
+\contentsline {subsection}{\numberline {4.3.2}并行空洞卷积分支}{14}{}%
+\contentsline {section}{\numberline {4.4}补充对照模型设计}{15}{}%
+\contentsline {subsection}{\numberline {4.4.1}Attention U-Net}{16}{}%
+\contentsline {subsection}{\numberline {4.4.2}UNet++}{16}{}%
+\contentsline {subsection}{\numberline {4.4.3}DDU-Net}{16}{}%
+\contentsline {subsection}{\numberline {4.4.4}Vanilla U-Net 与 Residual Vanilla U-Net}{16}{}%
+\contentsline {subsection}{\numberline {4.4.5}ResNet34 U-Net}{17}{}%
+\contentsline {section}{\numberline {4.5}实现细节}{17}{}%
+\contentsline {chapter}{\numberline {第5章}实验结果与分析}{18}{}%
+\contentsline {section}{\numberline {5.1}实验说明}{18}{}%
+\contentsline {section}{\numberline {5.2}全部模型结果}{18}{}%
+\contentsline {section}{\numberline {5.3}基线分支结果分析}{18}{}%
+\contentsline {section}{\numberline {5.4}DLGU-Net 分析}{19}{}%
+\contentsline {section}{\numberline {5.5}空洞卷积增强基线分析}{20}{}%
+\contentsline {section}{\numberline {5.6}Vanilla U-Net 及扩展探索分支分析}{20}{}%
+\contentsline {section}{\numberline {5.7}整图验证与整图测试的一致性分析}{21}{}%
+\contentsline {section}{\numberline {5.8}结果讨论}{22}{}%
+\contentsline {chapter}{\numberline {第6章}工程实现与系统功能}{23}{}%
+\contentsline {section}{\numberline {6.1}系统总体结构}{23}{}%
+\contentsline {section}{\numberline {6.2}数据准备模块实现}{23}{}%
+\contentsline {section}{\numberline {6.3}模型工厂与配置驱动机制}{23}{}%
+\contentsline {section}{\numberline {6.4}训练器实现}{23}{}%
+\contentsline {section}{\numberline {6.5}整图推理模块实现}{24}{}%
+\contentsline {section}{\numberline {6.6}整图评估模块实现}{24}{}%
+\contentsline {section}{\numberline {6.7}工作量体现}{24}{}%
+\contentsline {chapter}{\numberline {第7章}结论与展望}{26}{}%
+\contentsline {section}{\numberline {7.1}全文结论}{26}{}%
+\contentsline {section}{\numberline {7.2}本文特色}{26}{}%
+\contentsline {section}{\numberline {7.3}后续展望}{26}{}%
+\contentsline {chapter}{参考文献}{28}{}%
+\setcounter {tocdepth}{0}

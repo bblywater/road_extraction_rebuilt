@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "road-extraction-rebuilt"
+version = "0.1.0"
+description = "Rebuilt road extraction project with training and evaluation pipeline."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "opencv-python>=4.8",
+  "pillow>=10.0",
+  "matplotlib>=3.8",
+  "pandas>=2.1",
+  "seaborn>=0.13",
+  "pyyaml>=6.0",
+  "tqdm>=4.66",
+  "torch>=2.1",
+  "torchvision>=0.16",
+  "python-docx>=1.1",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

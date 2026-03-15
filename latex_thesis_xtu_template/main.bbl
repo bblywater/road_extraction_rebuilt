@@ -1,0 +1,70 @@
+\begin{thebibliography}{9}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{#1}
+\expandafter\ifx\csname urlstyle\endcsname\relax\relax\else
+  \urlstyle{same}\fi
+\providecommand{\href}[2]{\url{#2}}
+\providecommand{\doi}[1]{\href{https://doi.org/#1}{#1}}
+
+\bibitem[Mnih(2013)]{mnih2013}
+MNIH~V.
+\newblock Machine learning for aerial image labeling\allowbreak[D].
+\newblock University of Toronto, 2013.
+
+\bibitem[Demir et~al.(2018)Demir, Koperski, Lindenbaum, Pang, Huang, Basu,
+  Bhattacharya, Tuia, and Raskar]{deepglobe2018}
+DEMIR~I, KOPERSKI~K, LINDENBAUM~D, et~al.
+\newblock Deepglobe 2018: A challenge to parse the earth through satellite
+  images\allowbreak[C]//\allowbreak
+Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition
+  Workshops.
+\newblock 2018: 172-181.
+
+\bibitem[Ronneberger et~al.(2015)Ronneberger, Fischer, and Brox]{unet2015}
+RONNEBERGER~O, FISCHER~P, BROX~T.
+\newblock U-net: Convolutional networks for biomedical image
+  segmentation\allowbreak[C]//\allowbreak
+Medical Image Computing and Computer-Assisted Intervention.
+\newblock Springer, 2015: 234-241.
+
+\bibitem[Chen et~al.(2018)Chen, Zhu, Papandreou, Schroff, and
+  Adam]{deeplabv3plus2018}
+CHEN~L~C, ZHU~Y, PAPANDREOU~G, et~al.
+\newblock Encoder-decoder with atrous separable convolution for semantic image
+  segmentation\allowbreak[C]//\allowbreak
+Proceedings of the European Conference on Computer Vision.
+\newblock 2018: 801-818.
+
+\bibitem[Oktay et~al.(2018)Oktay, Schlemper, Folgoc, Lee, Heinrich, Misawa,
+  Mori, McDonagh, Houlsby, Rueckert, and Glocker]{attentionunet2018}
+OKTAY~O, SCHLEMPER~J, FOLGOC~L~L, et~al.
+\newblock Attention u-net: Learning where to look for the
+  pancreas\allowbreak[J].
+\newblock arXiv preprint arXiv:1804.03999, 2018.
+
+\bibitem[Zhou et~al.(2018)Zhou, Siddiquee, Tajbakhsh, and Liang]{unetpp2018}
+ZHOU~Z, SIDDIQUEE~M~M~R, TAJBAKHSH~N, et~al.
+\newblock Unet++: A nested u-net architecture for medical image
+  segmentation\allowbreak[J].
+\newblock arXiv preprint arXiv:1807.10165, 2018.
+
+\bibitem[Wang et~al.(2022)Wang, Wang, Gong, and Jiao]{ddu2022}
+WANG~Y, WANG~X, GONG~J, et~al.
+\newblock Ddu-net: Dual-decoder-u-net for road extraction using high-resolution
+  remote sensing images\allowbreak[J].
+\newblock arXiv preprint arXiv:2201.06750, 2022.
+
+\bibitem[Liu et~al.(2021)Liu, Lin, Cao, Hu, Wei, Zhang, Lin, and Guo]{swin2021}
+LIU~Z, LIN~Y, CAO~Y, et~al.
+\newblock Swin transformer: Hierarchical vision transformer using shifted
+  windows\allowbreak[C]//\allowbreak
+Proceedings of the IEEE/CVF International Conference on Computer Vision.
+\newblock 2021: 10012-10022.
+
+\bibitem[Yu et~al.(2016)Yu and Koltun]{dilated2016}
+YU~F, KOLTUN~V.
+\newblock Multi-scale context aggregation by dilated
+  convolutions\allowbreak[J].
+\newblock arXiv preprint arXiv:1511.07122, 2016.
+
+\end{thebibliography}

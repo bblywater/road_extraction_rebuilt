@@ -1,0 +1,11 @@
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Massachusetts Roads Dataset 测试集样例及其道路标注}}{8}{}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces 遥感道路样本的补边与 patch 划分流程}}{9}{}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces 工程优化前后基线模型单 epoch 训练耗时对比}}{11}{}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces 基线 U-Net 编码器--解码器结构示意图}}{13}{}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces 轻量级双线性注意力模块 DLAM 结构示意图}}{14}{}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces DLGU-Net 中 DLAM 模块的跳跃连接集成方式}}{15}{}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces 空洞卷积增强基线中的瓶颈层上下文模块示意图}}{16}{}%
+\contentsline {figure}{\numberline {5.1}{\ignorespaces 全部完整模型在测试集上的 IoU 与 F1 对比}}{19}{}%
+\contentsline {figure}{\numberline {5.2}{\ignorespaces 核心对比模型的收敛曲线对比}}{20}{}%
+\contentsline {figure}{\numberline {5.3}{\ignorespaces 典型测试样本上的多模型预测结果对比}}{21}{}%
+\contentsline {figure}{\numberline {5.4}{\ignorespaces 模型参数量与测试集 IoU 的关系}}{22}{}%
