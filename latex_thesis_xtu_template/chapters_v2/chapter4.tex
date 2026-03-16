@@ -1,0 +1,180 @@
+% !TeX root = ../thesisv2.tex
+
+\chapter{基于空洞卷积增强基线的遥感道路提取方法}
+\label{cha:v2-dilated}
+
+\section{空洞卷积增强基线网络原理}
+\subsection{研究动机与整体网络结构}
+在完成 DLGU-Net 主线模型后，本文进一步围绕统一 baseline 探索更直接、更集中、变量更可控的结构改进路线。相比作用于跳跃连接的注意力增强，瓶颈层上下文增强的优势在于改动位置更集中、结构差异更清晰，更适合回答“在保持 baseline 主干基本不变的前提下，如何通过高层语义特征增强获得稳定增益”这一问题。基于此，本文设计了空洞卷积增强 baseline，仅在 bottleneck 位置引入多尺度上下文模块，其余编码器、解码器、跳跃连接方式和训练配置均与 baseline 保持一致。
+
+这种设计使空洞卷积增强 baseline 成为典型的“围绕 baseline 的直接改进模型”。由于改动仅集中在最深层语义特征位置，因此模型性能变化可以较为直接地归因于多尺度上下文聚合能力，而不必与主干整体拓扑变化混杂。对于道路提取任务而言，瓶颈层语义特征直接决定了模型对道路区域整体形态、背景上下文和长程空间关系的理解，因此在该位置进行增强具有明确理论动机。
+
+\subsection{并行空洞卷积分支}
+根据本地源代码实现，空洞卷积增强模块由四个并行分支组成，膨胀率分别设置为 1、2、4 和 8。每个分支均采用 $3 \times 3$ 卷积、Batch Normalization 和 ReLU 激活，从同一 bottleneck 特征中抽取不同尺度的上下文信息。设 bottleneck 特征为 $F$，则四个分支的输出可表示为
+\[
+D_1(F),\quad D_2(F),\quad D_4(F),\quad D_8(F).
+\]
+其中，膨胀率为 1 的分支更关注局部语义与边界附近区域，膨胀率为 2 和 4 的分支负责中尺度上下文聚合，膨胀率为 8 的分支则用于引入更大范围的道路走向和地物关系信息。
+
+该多分支设计与道路提取任务中的多尺度特征需求直接相关。主干道路与支路通常在同一张图像中同时存在，仅依赖单一感受野往往难以同时保持主干道路完整性和细小道路召回率。并行空洞卷积分支允许模型在同一层级上观察不同空间尺度的上下文，从而提高对道路整体结构和局部变化的综合表达能力。
+
+\subsection{多尺度特征融合方式}
+四个空洞卷积分支输出后，首先在通道维度进行拼接，再通过 $1 \times 1$ 卷积进行通道压缩与融合，最后采用残差方式写回原始 bottleneck 特征：
+\[
+F_{\mathrm{ctx}} = F + \phi([D_1(F), D_2(F), D_4(F), D_8(F)]).
+\]
+其中 $\phi(\cdot)$ 表示融合卷积操作。采用残差融合的好处在于，模型在增强上下文表达的同时，仍然保留 baseline 原有的稳定特征流动方式，降低过强结构改动对训练稳定性的影响。
+
+与更大幅度改写编码器或解码器相比，这种融合方式更适合作为 baseline 的直接增强路线。它不改变 U-Net 的基本输入输出流程，不改变跳跃连接策略，也不改变解码器恢复分辨率的方式，而是在最深层语义空间加入多尺度信息补充。这使该模型具备较好的可控性和可解释性。
+
+\subsection{与基线模型的差异分析}
+空洞卷积增强 baseline 与统一 baseline 的核心差异仅体现在 bottleneck 上下文模块。根据实验结果文件，统一 baseline 参数量为 7.85M，空洞卷积增强 baseline 参数量为 18.34M，参数量增加约 10.49M。虽然参数规模上升明显，但整体网络仍保持 U-Net 风格的清晰结构，且改动集中于最深层特征位置。与引入重型编码器、双解码器或复杂跨层结构的模型相比，该方案在“结构改动集中性”和“实验对比可解释性”方面具有明显优势。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{arch/dilated_baseline_arch.png}
+\caption{空洞卷积增强基线中的瓶颈层上下文模块示意图}
+\label{fig:v2-dilated-arch}
+\end{figure}
+
+\section{空洞卷积增强基线实验结果及分析}
+\subsection{整图结果及分析}
+空洞卷积增强 baseline 在统一整图评估协议下取得了 Val IoU 0.627253、Val F1 0.768405、Test IoU 0.646839、Test F1 0.782933、Precision 0.811091 和 Recall 0.759327。与统一 baseline 相比，该模型在测试集上实现了 IoU 和 F1 的小幅提升，并获得更高的 Precision。表 \ref{tab:v2-dilated-main} 给出了两者的核心结果对比。
+
+\begin{table}[htbp]
+\centering
+\caption{空洞卷积增强 baseline 与统一 baseline 的整图结果对比}
+\label{tab:v2-dilated-main}
+\begin{tabular}{lcccccc}
+\toprule
+模型 & 参数量(M) & Val IoU & Test IoU & Test F1 & Test Precision & Test Recall \\
+\midrule
+Baseline U-Net & 7.85 & 0.629811 & 0.645964 & 0.782378 & 0.787734 & 0.780151 \\
+Dilated Baseline U-Net & 18.34 & 0.627253 & 0.646839 & 0.782933 & 0.811091 & 0.759327 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+上述结果表明，多尺度上下文增强能够在不改变 U-Net 主体拓扑的前提下，为道路提取带来可量化的测试集精度收益。该收益虽然幅度不大，但方向明确，并且建立在统一训练和统一整图评估协议之上，因此具有较好的比较价值。特别是该模型的 Precision 达到 0.811091，说明多尺度上下文增强对复杂背景下误报控制具有积极作用。
+
+\begin{table}[htbp]
+\centering
+\caption{空洞卷积增强 baseline 相对统一 baseline 的测试集指标差值}
+\label{tab:v2-dilated-delta}
+\begin{tabular}{lcccc}
+\toprule
+比较项 & IoU 差值 & F1 差值 & Precision 差值 & Recall 差值 \\
+\midrule
+Dilated Baseline $-$ Baseline & $+0.000875$ & $+0.000555$ & $+0.023358$ & $-0.020824$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+表 \ref{tab:v2-dilated-delta} 进一步揭示了该模型的行为特点。相较于 baseline，空洞卷积增强 baseline 的 Precision 提升明显，而 Recall 有所下降。这说明瓶颈层多尺度上下文增强使模型在道路/背景区分上更加谨慎，减少了部分背景误检，但对部分细小支路和弱响应道路的保留相对保守。综合 IoU 与 F1 的小幅提升可以判断，这种“误报降低大于召回损失”的变化总体上对当前测试集更有利。
+
+\subsection{典型样本结果分析}
+在典型测试样本中，空洞卷积增强 baseline 对道路主干和交叉口结构具有较好的稳定性。相较于仅依赖 baseline 深层特征的情况，多尺度上下文聚合能够使瓶颈层更充分地观察道路区域与周围背景的关系，因此在背景纹理较复杂、地表区域差异较大的样本中表现出更强的边界稳定性。
+
+结合图 \ref{fig:v2-qualitative} 的定性结果可以观察到，空洞卷积增强 baseline 在主干道路区域往往能保持较为完整的连续结构，在部分复杂纹理区域也具有较少的误报。对于多支路密集和局部阴影明显的样本，该模型相较于部分轻量注意力模型更容易保持道路主体区域的判别稳定性。这与其 Precision 提升的定量结论相互印证。
+
+\section{基线改进分支对照分析}
+\subsection{对照实验设置}
+为了分析不同 baseline 改进方向的适配特征，本文将 Baseline U-Net、DLGU-Net、Attention U-Net、UNet++ 和 Dilated Baseline U-Net 组织为 baseline 改进分支。该分支中的模型共享统一输入尺寸、统一训练损失、统一优化器、统一整图验证和统一整图测试协议，变量差异主要集中在特征增强方式上。这一设置有助于回答两个问题：一是不同结构增强是否能够在当前任务中形成稳定效果，二是哪些改动更适合在 baseline 主干上直接获得收益。
+
+\subsection{结果分析}
+表 \ref{tab:v2-baseline-branch} 汇总了 baseline 改进分支的测试结果。可以看到，围绕 baseline 展开的结构增强整体上都能保持与 baseline 接近的性能水平，说明统一工程与统一训练条件对多类结构均具有良好适配性。在该分支中，空洞卷积增强 baseline 取得最高 Test IoU 和 Test F1，成为本文围绕 baseline 开展直接改进时最具代表性的正向结果。
+
+\begin{table}[htbp]
+\centering
+\caption{baseline 改进分支模型测试结果对比}
+\label{tab:v2-baseline-branch}
+\begin{tabular}{lcccc}
+\toprule
+模型 & 参数量(M) & Test IoU & Test F1 & Test Precision \\
+\midrule
+Baseline U-Net & 7.85 & 0.645964 & 0.782378 & 0.787734 \\
+DLGU-Net & 8.30 & 0.641934 & 0.779244 & 0.793195 \\
+Attention U-Net & 7.98 & 0.636926 & 0.775462 & 0.798229 \\
+UNet++ & 8.30 & 0.643158 & 0.780181 & 0.791030 \\
+Dilated Baseline U-Net & 18.34 & \textbf{0.646839} & \textbf{0.782933} & \textbf{0.811091} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从分支结果可以得到三点认识。第一，围绕 baseline 开展局部结构增强是一条有效研究路线，因为无论是跳跃连接增强还是瓶颈层上下文增强，都能形成稳定且可比较的实验结果。第二，不同增强方向对应不同性能取向：Attention U-Net 和 DLGU-Net 更强调背景抑制，UNet++ 更强调多层特征融合，空洞卷积增强 baseline 更强调多尺度语义上下文。第三，若以“尽量保持 baseline 主干不变并争取正向测试增益”为标准，空洞卷积增强 baseline 是当前最合适的直接改进模型。
+
+\section{效能对比实验}
+\subsection{参数量、精度与训练稳定性分析}
+表 \ref{tab:v2-all-results} 给出了全部完整模型在统一整图评估协议下的结果。该结果矩阵不仅覆盖了主线模型和 baseline 改进分支，也保留了扩展探索分支中的全部模型，从而能够较系统地观察参数量、结构复杂度与最终精度之间的关系。
+
+\begin{table}[htbp]
+\centering
+\caption{全部完整模型在统一整图评估协议下的结果}
+\label{tab:v2-all-results}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+模型 & 参数量(M) & Val IoU & Val F1 & Test IoU & Test F1 & Test Precision & Test Recall & 结构说明 \\
+\midrule
+Vanilla U-Net & 31.03 & \textbf{0.6321} & \textbf{0.7722} & \textbf{0.6472} & \textbf{0.7832} & 0.7954 & 0.7748 & 原始风格卷积块与转置卷积上采样 \\
+Dilated Baseline U-Net & 18.34 & 0.6273 & 0.7684 & 0.6468 & 0.7829 & \textbf{0.8111} & 0.7593 & baseline + 空洞卷积上下文 \\
+Baseline U-Net & 7.85 & 0.6298 & 0.7703 & 0.6460 & 0.7824 & 0.7877 & 0.7802 & 全文统一基线 \\
+UNet++ & 8.30 & 0.6308 & 0.7711 & 0.6432 & 0.7802 & 0.7910 & 0.7725 & baseline + 嵌套跳跃连接 \\
+DLGU-Net & 8.30 & 0.6261 & 0.7675 & 0.6419 & 0.7792 & 0.7932 & 0.7694 & baseline + DLAM 注意力 \\
+Residual Vanilla U-Net & 32.43 & 0.6306 & 0.7710 & 0.6389 & 0.7768 & 0.8116 & 0.7486 & Vanilla 主干 + 残差块 \\
+Attention U-Net & 7.98 & 0.6268 & 0.7680 & 0.6369 & 0.7755 & 0.7982 & 0.7576 & baseline + 门控注意力 \\
+ResNet34 U-Net & 29.17 & 0.6222 & 0.7646 & 0.6284 & 0.7691 & 0.7748 & 0.7666 & 预训练编码器 \\
+DDU-Net & 46.78 & 0.6163 & 0.7602 & 0.6277 & 0.7693 & 0.7322 & 0.8138 & 双解码器与重上下文模块 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+从表 \ref{tab:v2-all-results} 可以看出，参数量增加并不自动对应精度提升。DDU-Net 参数量最大，达到 46.78M，但其 Test IoU 仅为 0.6277；ResNet34 U-Net 采用预训练编码器，参数量亦较大，但整图结果并未超过轻量 U-Net 变体。相反，结构较为直接且设计针对性较强的模型，如 Dilated Baseline U-Net 和 Vanilla U-Net，在当前任务上获得了更优结果。这说明，对于 Massachusetts Roads Dataset 这类道路分割任务而言，结构改动位置与任务匹配程度比单纯扩大模型容量更关键。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{generated/model_performance.png}
+\caption{全部完整模型在测试集上的 IoU 与 F1 对比}
+\label{fig:v2-model-performance}
+\end{figure}
+
+\subsection{精度与效率综合分析}
+图 \ref{fig:v2-model-tradeoff} 给出了模型参数量与 Test IoU 的关系。该图进一步说明，参数规模与精度之间并不存在简单线性关系。统一 baseline 以 7.85M 参数获得稳定表现；DLGU-Net 和 UNet++ 在接近 8.30M 参数规模下完成了结构增强；空洞卷积增强 baseline 虽然参数量升至 18.34M，但测试集表现优于 baseline；Vanilla U-Net 以 31.03M 参数取得全体模型最佳结果；而更重的 ResNet34 U-Net 与 DDU-Net 则未在当前任务上体现出相应精度优势。
+
+对本文而言，效能分析的意义不只是指出哪一个模型最好，更在于总结何种结构路线更适合后续研究与部署。如果以“围绕 baseline 进行正向改进”为标准，则 Dilated Baseline U-Net 是最有代表性的结果；如果以“全体模型最高测试精度”为标准，则 Vanilla U-Net 形成了扩展探索分支中的最佳结果；如果以“轻量参数开销下的结构研究价值”为标准，则 DLGU-Net 仍然构成本文主线模型。三者在论文中的角色并不冲突，而是共同组成了层次清晰的结果体系。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.78\textwidth]{generated/model_tradeoff.png}
+\caption{模型参数量与测试集 IoU 的关系}
+\label{fig:v2-model-tradeoff}
+\end{figure}
+
+\section{扩展探索分支结果分析}
+\subsection{扩展探索分支量化结果}
+在主线模型和 baseline 改进分支之外，本文还构建了扩展探索分支，用于观察原始风格主干、残差连接、预训练编码器和重型上下文结构在当前任务中的表现。表 \ref{tab:v2-extended-branch} 汇总了该分支的测试结果。
+
+\begin{table}[htbp]
+\centering
+\caption{扩展探索分支模型测试结果}
+\label{tab:v2-extended-branch}
+\begin{tabular}{lcccc}
+\toprule
+模型 & 参数量(M) & Test IoU & Test F1 & Test Recall \\
+\midrule
+Vanilla U-Net & 31.03 & \textbf{0.647187} & \textbf{0.783246} & 0.774790 \\
+Residual Vanilla U-Net & 32.43 & 0.638915 & 0.776822 & 0.748650 \\
+ResNet34 U-Net & 29.17 & 0.628392 & 0.769136 & 0.766597 \\
+DDU-Net & 46.78 & 0.627706 & 0.769295 & \textbf{0.813795} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从表中可以看出，Vanilla U-Net 在扩展探索分支中取得了最高 Test IoU 和 F1，是全体模型中的最佳测试结果。Residual Vanilla U-Net 在引入残差连接后，Precision 更高但 Recall 降低，说明残差块在当前任务下使模型更加保守。ResNet34 U-Net 说明预训练编码器并未自动转化为更高的道路分割性能。DDU-Net 的 Recall 最高，表明其更倾向于保留道路像素，但 Precision 显著偏低，这意味着更重的双解码器与上下文结构在当前任务中更容易产生背景误报。
+
+\subsection{扩展探索分支的研究意义}
+虽然扩展探索分支并不全部围绕 baseline 的直接增强展开，但其存在具有明确论文价值。第一，它显著增加了本文的模型覆盖范围，使结论不局限于单一路线。第二，它帮助识别出当前任务对结构风格的偏好。例如，Vanilla U-Net 的优异结果说明，在当前统一数据和训练条件下，主干卷积块与上采样方式的变化具有较高影响力。第三，它为后续继续开展结构搜索提供了真实依据，使“最佳模型”“最佳 baseline 改进”和“主线模型”三个概念能够清晰区分。
+
+\section{本章小结}
+本章围绕空洞卷积增强 baseline 及其所在的 baseline 改进分支、效能对比实验和扩展探索分支展开了系统分析。首先说明了在 bottleneck 位置引入并行空洞卷积分支的设计动机、模块结构与多尺度特征融合方式，并结合整图验证和测试结果给出了其相对 baseline 的小幅正向收益。随后，通过 baseline 改进分支的结构对照，明确了 Dilated Baseline U-Net 在“围绕 baseline 直接改进”这一目标下的代表性。进一步结合全部完整模型结果、参数量与精度关系图以及扩展探索分支分析，本章形成了更完整的模型层次与选择依据。综合来看，空洞卷积增强 baseline 构成了本文中对 baseline 最直接、最清晰且取得正向测试增益的结构改进路线。

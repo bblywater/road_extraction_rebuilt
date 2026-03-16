@@ -1,0 +1,32 @@
+% !TeX encoding = UTF-8
+% !TeX program = xelatex
+
+\documentclass[degree=bachelor, degree-type=academic]{xtuthesis}
+
+\input{xtusetup_v2.tex}
+
+\begin{document}
+
+\maketitle
+\declareandcopyrightpage
+
+\frontmatter
+\input{chapters_v2/abstract_v2.tex}
+\tableofcontents
+\listoftables
+\listoffigures
+\input{data/denotation.tex}
+
+\mainmatter
+\input{chapters_v2/chapter1.tex}
+\input{chapters_v2/chapter2.tex}
+\input{chapters_v2/chapter3.tex}
+\input{chapters_v2/chapter4.tex}
+\input{chapters_v2/chapter5.tex}
+\input{chapters_v2/appendix_v2.tex}
+
+\backmatter
+\bibliographystyle{xtuthesis-bachelor}
+\bibliography{ref/refs}
+
+\end{document}

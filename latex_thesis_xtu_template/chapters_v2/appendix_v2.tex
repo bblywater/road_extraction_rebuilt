@@ -1,0 +1,191 @@
+% !TeX root = ../thesisv2.tex
+
+\appendix
+
+\chapter{实验工程补充说明}
+\label{app:v2-engineering}
+
+\section{实验工程目录组织}
+本文重建后的实验工程围绕“数据、模型、训练、推理、评估、论文”六类对象组织。根目录下的 \texttt{data} 目录用于存放整理后的数据集和离线 patch 数据；\texttt{src/road\_extraction} 目录集中保存模型定义、数据集读取、训练器、损失函数、推理与评估模块；\texttt{scripts} 目录提供面向不同任务的脚本入口；\texttt{experiments} 目录用于保存模型训练历史、最佳权重、整图验证结果和整图测试结果；\texttt{latex\_thesis\_xtu\_template} 目录用于组织论文模板、图表和正文文件。这样的目录划分使实验执行路径和论文写作路径相互独立，同时又能通过结果文件和图表生成脚本保持联动。
+
+从工程复核角度看，统一目录组织具有两个优势。第一，不同模型共享同一训练器、同一评估协议和同一结果导出规范，因此实验目录中的结果文件具有一致结构。第二，论文图表与实验结果之间建立了明确映射关系，方便在更新模型结果后同步重绘论文图表。对于毕业论文撰写而言，这种工程组织方式能够显著降低结果整理和版本管理难度。
+
+\section{关键脚本说明}
+表 \ref{tab:v2-script-summary} 汇总了本文实验工程中的主要脚本及其功能。所有脚本均来源于当前本地完整工程，覆盖数据准备、训练、评估、推理和辅助分析等环节。
+
+\begin{table}[htbp]
+\centering
+\caption{实验工程主要脚本及其功能}
+\label{tab:v2-script-summary}
+\begin{tabular}{p{4.0cm}p{9.0cm}}
+\toprule
+脚本名称 & 主要功能 \\
+\midrule
+\texttt{prepare\_massachusetts.py} & 整理 Massachusetts Roads Dataset 目录并生成离线 patch 数据集 \\
+\texttt{train.py} & 读取配置文件并启动统一训练流程，保存 checkpoint 与训练历史 \\
+\texttt{evaluate.py} & 对指定实验目录执行整图验证或整图测试评估，导出 JSON 结果与可视化文件 \\
+\texttt{predict.py} & 对单张遥感图像执行整图切块推理并导出预测掩膜 \\
+\texttt{compare\_models.py} & 汇总多个实验目录的结果，用于模型间对比分析 \\
+\texttt{explore\_dataset.py} & 浏览和统计数据集样本信息，用于数据核查与论文材料准备 \\
+\texttt{benchmark\_pipeline.py} & 评估数据管线吞吐和训练等待时间，用于工程优化验证 \\
+\texttt{resume\_training.py} & 基于已保存 checkpoint 继续训练已有实验 \\
+\texttt{verify\_dlgu.py} & 针对 DLGU 相关结构进行验证与排查 \\
+\texttt{fix\_tiff.py} & 检查和处理遥感影像文件读写问题 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{核心模块说明}
+表 \ref{tab:v2-module-summary} 进一步给出了核心 Python 模块及其在统一工程中的作用。通过模型、数据、训练与推理模块的分离，本文形成了配置驱动、结构可扩展、结果可复核的实验平台。
+
+\begin{table}[htbp]
+\centering
+\caption{核心模块及其作用说明}
+\label{tab:v2-module-summary}
+\begin{tabular}{p{3.8cm}p{9.2cm}}
+\toprule
+模块目录 & 主要作用 \\
+\midrule
+\texttt{src/road\_extraction/data} & 定义数据集类、离线 patch 数据集读取逻辑和 DataLoader 构建方式 \\
+\texttt{src/road\_extraction/models} & 统一注册 Baseline、DLGU、空洞卷积增强、UNet++、Attention U-Net 等模型 \\
+\texttt{src/road\_extraction/training} & 提供损失函数、训练器、指标统计与日志记录功能 \\
+\texttt{src/road\_extraction/pipelines} & 实现整图推理、结果拼接恢复和整图评估流程 \\
+\texttt{src/road\_extraction/utils} & 提供配置读取、路径处理和实验辅助工具 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{实验产物组织方式}
+每个完整实验目录均采用统一产物组织方式，通常包括 \texttt{best\_model.pth}、训练历史 JSON 文件、整图验证结果目录、整图测试结果目录、训练曲线图和日志文件等内容。通过这种方式，可以从单个实验目录直接追溯模型配置、最佳 checkpoint、验证结果和测试结果，便于论文结果复核与图表生成。
+
+\begin{table}[htbp]
+\centering
+\caption{单个实验目录中的主要产物}
+\label{tab:v2-experiment-artifacts}
+\begin{tabular}{p{3.8cm}p{9.2cm}}
+\toprule
+产物名称 & 说明 \\
+\midrule
+\texttt{config.json} & 固化训练配置，保证实验参数可追溯 \\
+\texttt{training\_history.json} & 保存各 epoch 的训练损失、训练 IoU、验证损失和验证 IoU \\
+\texttt{best\_model.pth} & 验证指标最优对应的模型权重 \\
+\texttt{checkpoint\_epoch\_*.pth} & 阶段性训练权重，用于续训和阶段分析 \\
+\texttt{full\_evaluation\_val} & 整图验证结果目录，包含 JSON 汇总与可视化样例 \\
+\texttt{full\_evaluation} & 整图测试结果目录，包含 JSON 汇总与可视化样例 \\
+\texttt{training\_curves.png} & 训练过程可视化图像 \\
+\texttt{*.log} & 训练、评估和调试过程日志 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\chapter{主要实验结果补充表}
+\label{app:v2-results}
+
+\section{模型结果补充信息}
+正文中已经给出了不同模型的核心整图指标。为了便于后续复核，表 \ref{tab:v2-appendix-results} 进一步汇总了全部完整模型的最佳 checkpoint 所在 epoch、参数量、整图测试指标和模型所属研究分支。该表以当前本地实验目录中的结果文件为依据，能够与正文中的主表形成互补。
+
+\begin{table}[htbp]
+\centering
+\caption{全部完整模型的补充结果信息}
+\label{tab:v2-appendix-results}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccccc}
+\toprule
+模型 & 最佳 epoch & 参数量(M) & Test IoU & Test F1 & Precision & Recall & 所属分支 \\
+\midrule
+Baseline U-Net & 16 & 7.85 & 0.645964 & 0.782378 & 0.787734 & 0.780151 & 统一 baseline \\
+DLGU-Net & 11 & 8.30 & 0.641934 & 0.779244 & 0.793195 & 0.769380 & 主线模型 \\
+Dilated Baseline U-Net & 15 & 18.34 & 0.646839 & 0.782933 & 0.811091 & 0.759327 & baseline 直接改进 \\
+Vanilla U-Net & 15 & 31.03 & 0.647187 & 0.783246 & 0.795365 & 0.774790 & 扩展探索分支 \\
+UNet++ & 17 & 8.30 & 0.643158 & 0.780181 & 0.791030 & 0.772549 & baseline 改进分支 \\
+Attention U-Net & 18 & 7.98 & 0.636926 & 0.775462 & 0.798229 & 0.757582 & baseline 改进分支 \\
+Residual Vanilla U-Net & 19 & 32.43 & 0.638915 & 0.776822 & 0.811634 & 0.748650 & 扩展探索分支 \\
+ResNet34 U-Net & 18 & 29.17 & 0.628392 & 0.769136 & 0.774829 & 0.766597 & 扩展探索分支 \\
+DDU-Net & 11 & 46.78 & 0.627706 & 0.769295 & 0.732213 & 0.813795 & 扩展探索分支 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\section{模型分支角色说明}
+本文实验矩阵的组织并非简单罗列多个模型，而是服务于不同研究目标。表 \ref{tab:v2-role-summary} 对各模型在论文中的角色进行归纳。该表有助于说明为何本文在结果分析中同时保留“主线模型”“baseline 直接改进”和“扩展探索”三类表达。
+
+\begin{table}[htbp]
+\centering
+\caption{各模型在论文中的角色定位}
+\label{tab:v2-role-summary}
+\begin{tabular}{p{3.0cm}p{4.2cm}p{5.0cm}}
+\toprule
+模型 & 角色定位 & 论文中的主要作用 \\
+\midrule
+Baseline U-Net & 统一参照模型 & 提供结构简单、结果稳定的公共 baseline \\
+DLGU-Net & 主线模型 & 验证轻量级跳跃连接注意力增强路线 \\
+Dilated Baseline U-Net & baseline 直接改进模型 & 体现围绕 baseline 开展局部结构增强的正向结果 \\
+Attention U-Net / UNet++ & 同类对照模型 & 对照不同跳跃连接增强策略的行为差异 \\
+Vanilla U-Net & 扩展探索最佳模型 & 展示主干重构路线在当前任务中的性能潜力 \\
+Residual Vanilla U-Net & 扩展探索补充模型 & 分析残差连接对原始风格 U-Net 的影响 \\
+ResNet34 U-Net / DDU-Net & 重型结构对照模型 & 丰富参数量、上下文建模和主干选择维度 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{统一整图评估结果的意义}
+本文所有关键结论均以整图验证和整图测试结果为依据。附录中再次强调这一点，是因为道路提取任务的最终对象是完整道路网络。统一整图评估的意义主要体现在三个方面：第一，避免 patch 边界效应影响模型排序；第二，使验证与测试采用同一统计协议；第三，使模型结果更贴近实际部署场景。正是在这一前提下，正文中关于 DLGU-Net、Dilated Baseline U-Net 和 Vanilla U-Net 的角色划分才具有稳定解释基础。
+
+\chapter{配置与论文制图补充说明}
+\label{app:v2-config}
+
+\section{核心模型配置差异}
+本文主线模型和关键对照模型均采用配置驱动方式运行。表 \ref{tab:v2-config-summary} 汇总了 Baseline U-Net、DLGU-Net、Dilated Baseline U-Net 和 Vanilla U-Net 四个核心模型的主要配置差异。可以看到，数据输入、训练轮数、优化器、学习率和损失函数保持高度一致，差异主要体现在模型名称、初始通道数和附加模块设置上。这一配置组织方式有助于保证结构对比的公平性。
+
+\begin{table}[htbp]
+\centering
+\caption{核心模型配置差异汇总}
+\label{tab:v2-config-summary}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lcccccccc}
+\toprule
+模型 & model.name & init\_channels & patch\_size & epochs & batch\_size & loss & scheduler & 关键附加设置 \\
+\midrule
+Baseline U-Net & baseline\_unet & 32 & 512 & 20 & 4 & Dice+BCE & StepLR & 无 \\
+DLGU-Net & dlgu\_net & 32 & 512 & 20 & 4 & Dice+BCE & StepLR & reduction=16, spatial\_kernel=5 \\
+Dilated Baseline U-Net & dilated\_baseline\_unet & 32 & 512 & 20 & 4 & Dice+BCE & StepLR & 瓶颈层空洞卷积分支 \\
+Vanilla U-Net & vanilla\_unet & 64 & 512 & 20 & 4 & Dice+BCE & StepLR & 原始风格卷积块与转置卷积上采样 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+从配置角度看，DLGU-Net 和 Dilated Baseline U-Net 均保持与 baseline 相同的训练主设置，因此其结果更适合被解释为围绕统一 baseline 展开的结构变化。Vanilla U-Net 的配置差异则更多体现在模型本体上，包括通道宽度和卷积块风格的变化。这也是正文中将其定位为“扩展探索分支最佳模型”而非“baseline 直接增强”的原因之一。
+
+\section{统一训练与输出参数说明}
+四个核心模型在训练配置中共享以下关键参数：使用 $512 \times 512$ patch 输入、目标补边尺寸为 $1536 \times 1536$、训练轮数上限为 20、批大小为 4、学习率为 $1\times10^{-4}$、权重衰减为 $1\times10^{-5}$、损失函数为 Dice+BCE、调度器为 StepLR，并统一开启 AMP 和梯度裁剪。数据层面，训练集和验证集均采用预切分 patch，测试阶段保留整图切块推理与整图恢复流程。该统一设置是本文所有结果能够进行横向对比的基础。
+
+输出参数方面，四个模型均采用相同实验目录组织方式，统一保存配置文件、训练历史、最佳权重、整图验证结果、整图测试结果和训练曲线图。正文中的绝大部分图表正是基于这些标准化输出文件自动生成的。由此，论文写作所使用的模型结果并不是手工整理出来的零散数据，而是从统一实验产物中直接抽取并重绘的结构化结果。
+
+\section{论文图表生成链条}
+本文论文中的多幅图表由统一图表生成脚本自动生成。根据 \texttt{tools/generate\_thesis\_figures.py} 的实现，图表生成链条包括以下几个环节：首先读取实验目录中的 \texttt{summary\_results.json}、\texttt{training\_history.json} 和样例可视化图像；随后对模型指标、训练曲线、典型样本和参数量关系进行聚合；最后将结果导出为论文目录下的 \texttt{figures/generated} 图像文件。该链条确保论文图表与实验结果目录保持一致，减少手工搬运数据带来的错误风险。
+
+\begin{table}[htbp]
+\centering
+\caption{论文自动生成图表与数据来源对应关系}
+\label{tab:v2-figure-source}
+\begin{tabular}{p{4.0cm}p{8.8cm}}
+\toprule
+图表文件 & 主要数据来源 \\
+\midrule
+\texttt{dataset\_examples.png} & 测试集原始图像与道路标注文件 \\
+\texttt{preprocessing\_pipeline.png} & 测试样本补边与 patch 划分过程 \\
+\texttt{engineering\_speedup.png} & 基线训练日志中的单 epoch 耗时记录 \\
+\texttt{model\_performance.png} & 各实验目录的整图测试结果 JSON \\
+\texttt{training\_curves\_comparison.png} & 各实验目录的训练历史 JSON \\
+\texttt{qualitative\_comparison.png} & 各模型 sample\_visualizations 目录中的预测图像 \\
+\texttt{model\_tradeoff.png} & 各模型参数量与整图测试 IoU 汇总结果 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{论文与实验结果联动方式}
+在本文工程中，论文写作与实验执行之间并非割裂关系，而是通过统一目录和标准输出形成联动。模型训练完成后，训练历史、整图评估结果和可视化图像自动进入实验目录；图表生成脚本再从这些目录中抽取数据，生成论文所需图表；最终 \LaTeX{} 工程引用这些图表并组织成章节内容。这种方式具有三方面优势：第一，结果来源明确，便于复核；第二，图表更新成本较低，适合反复修改论文；第三，实验结果与论文文字能够保持一致，减少版本漂移。
+
+从毕业论文工作量角度看，这种联动方式也是本文的重要组成部分。本文不仅完成了模型实现和实验运行，还完成了结果整理、图表自动生成和论文结构重组，使实验工程真正服务于论文产出。这一工作方式对后续补充新模型、更新结果表和扩写论文正文仍然具有持续价值。

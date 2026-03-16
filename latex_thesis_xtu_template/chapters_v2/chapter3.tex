@@ -1,0 +1,167 @@
+% !TeX root = ../thesisv2.tex
+
+\chapter{基于 DLGU-Net 的遥感道路提取方法}
+\label{cha:v2-dlgu}
+
+\section{DLGU-Net 网络原理}
+\subsection{研究动机与整体网络结构}
+本文主线模型 DLGU-Net 直接建立在统一 baseline U-Net 之上，其研究动机来自跳跃连接特征在遥感道路提取中的双重属性。对于道路提取任务，跳跃连接中的浅层特征一方面保存了边缘、宽度变化和窄支路等细节信息，另一方面也包含建筑边缘、地物阴影和复杂纹理等背景干扰。如果不对这些浅层特征加以筛选，解码器在恢复空间分辨率时会同时引入有用细节和无关噪声，从而影响道路掩膜的完整性和纯净度。因此，围绕跳跃连接进行特征增强是一个具有明确问题导向的结构设计方向。
+
+DLGU-Net 的整体设计思想是保持 U-Net 主干拓扑不变，将改动集中在四级跳跃连接之上。模型仍采用四级编码器、瓶颈层和四级解码器的对称结构，输入为三通道遥感图像，输出为单通道道路分割 logits。与 baseline 不同之处在于，四级编码器输出在进入解码器之前，先经过轻量级双线性注意力模块 DLAM 进行特征重标定。通过这种方式，模型在保持主干结构可比性的同时，将注意力机制明确作用于浅层特征融合路径。
+
+从变量控制角度看，这种设计具有明显优势。第一，主干结构、训练配置和输入输出形式均与 baseline 保持一致，因此可以较为直接地分析性能差异来自何处。第二，DLAM 仅引入小规模附加参数，不会改变整体网络的训练方式和部署流程。第三，DLAM 作用于跳跃连接而非瓶颈层，可以更直接地检验浅层细节筛选与道路分割精度之间的关系。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{arch/baseline_unet_arch.png}
+\caption{统一基线 U-Net 编码器--解码器结构示意图}
+\label{fig:v2-baseline-arch}
+\end{figure}
+
+\subsection{通道重标定分支}
+DLAM 的第一部分是通道重标定分支。对于输入特征 $F \in \mathbb{R}^{C \times H \times W}$，通道分支分别采用全局平均池化和全局最大池化得到两个长度为 $C$ 的通道描述向量，再通过共享多层感知机生成通道权重：
+\[
+A_c(F)=\sigma(\mathrm{MLP}(\mathrm{AvgPool}(F))+\mathrm{MLP}(\mathrm{MaxPool}(F))).
+\]
+其中，$\sigma(\cdot)$ 表示 Sigmoid 激活。平均池化更适合表达通道响应的整体统计水平，最大池化则强调显著局部响应。二者叠加后，可以更全面地刻画不同通道在当前输入下的重要性。
+
+在道路提取场景中，通道重标定的意义主要体现在两个方面。第一，它能够突出对道路边缘、线结构和方向性更敏感的特征通道，弱化对背景纹理和噪声更敏感的通道。第二，它提供了一种轻量而直接的全局特征筛选方式，使每一级跳跃连接在进入解码器前都具备一定的自适应选择能力。相比完全依赖卷积堆叠进行隐式筛选，显式的通道重标定更利于针对细长结构目标开展定向增强。
+
+\subsection{空间方向增强分支}
+DLAM 的第二部分是空间方向增强分支。道路目标具有明显的线状和方向性特征，因此本文没有采用仅针对局部方形感受野的简单空间注意力，而是采用条形卷积构建方向增强分支。具体实现中，分别使用 $(1,k)$ 和 $(k,1)$ 两种卷积获取水平方向和垂直方向的长程上下文，再通过 $1 \times 1$ 卷积生成空间权重图：
+\[
+A_s(F)=\sigma(\mathrm{Conv}_{1\times 1}(\mathrm{Conv}_{1\times k}(F)+\mathrm{Conv}_{k\times 1}(F))).
+\]
+
+该分支的设计与道路目标特征直接对应。道路在遥感图像中往往具有连续延展和方向变化特征，特别是在主干道路、长直道路和窄支路上，方向性上下文比局部孤立纹理更能反映道路存在与否。通过水平和垂直条形卷积的组合，模型能够在保持较低参数量的前提下，增强与道路延展方向相关的空间响应，从而提高浅层特征中的结构辨识度。
+
+\subsection{DLAM 模块集成方式}
+在完成通道重标定和空间方向增强后，DLAM 采用残差方式将两者与输入特征融合：
+\[
+F' = F + F \odot A_c(F)\odot A_s(F),
+\]
+其中 $\odot$ 表示逐元素乘法。该表达式说明，原始特征首先受到通道权重与空间权重的共同调制，随后再通过残差连接回写输入特征。这样做可以同时保留原始信息流和增强后的显著响应，降低注意力模块过度抑制有用特征的风险。
+
+在 DLGU-Net 中，四级编码器输出特征均通过 DLAM 后再送入对应解码层。图 \ref{fig:v2-dlam-arch} 给出了 DLAM 的内部结构，图 \ref{fig:v2-dlgu-integration} 则展示了 DLAM 在跳跃连接上的集成方式。结合源代码实现可以看到，DLGU-Net 在保持 baseline 四级编解码拓扑不变的情况下，将结构改动精准定位到跳跃连接，使模型设计更符合变量可控和结论可解释的要求。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.93\textwidth]{arch/dlam_module_arch.png}
+\caption{轻量级双线性注意力模块 DLAM 结构示意图}
+\label{fig:v2-dlam-arch}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{arch/dlgu_integration_arch.png}
+\caption{DLGU-Net 中 DLAM 模块在跳跃连接上的集成方式}
+\label{fig:v2-dlgu-integration}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{DLAM 模块的组成与设计作用}
+\label{tab:v2-dlam-components}
+\begin{tabular}{p{3.0cm}p{4.6cm}p{5.1cm}}
+\toprule
+组成部分 & 实现方式 & 主要作用 \\
+\midrule
+通道描述提取 & 全局平均池化 + 全局最大池化 & 统计不同特征通道的整体显著性 \\
+通道重标定 & 共享 MLP + Sigmoid & 提升道路相关通道、抑制背景相关通道 \\
+空间方向增强 & $(1,k)$ 与 $(k,1)$ 条形卷积 & 强化道路方向性和长条结构上下文 \\
+特征融合 & $1 \times 1$ 卷积 + Sigmoid & 生成空间权重图并完成位置选择 \\
+残差回写 & 输入特征与增强特征相加 & 保持原始特征稳定性并降低过抑制风险 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{DLGU-Net 实验结果及分析}
+\subsection{整图验证与整图测试结果}
+在统一整图评估协议下，DLGU-Net 在验证集上达到 IoU 0.626136、F1 0.767498，在测试集上达到 IoU 0.641934、F1 0.779244、Precision 0.793195、Recall 0.769380。结合实验目录中的模型信息，DLGU-Net 最终采用的最佳 checkpoint 对应第 11 个 epoch，best\_metric 为 0.623198。表 \ref{tab:v2-dlgu-main} 汇总了 DLGU-Net 与统一 baseline 的核心结果。
+
+\begin{table}[htbp]
+\centering
+\caption{DLGU-Net 与统一 baseline 的整图结果对比}
+\label{tab:v2-dlgu-main}
+\begin{tabular}{lcccccc}
+\toprule
+模型 & 参数量(M) & Val IoU & Test IoU & Test F1 & Test Precision & Test Recall \\
+\midrule
+Baseline U-Net & 7.85 & 0.629811 & 0.645964 & 0.782378 & 0.787734 & 0.780151 \\
+DLGU-Net & 8.30 & 0.626136 & 0.641934 & 0.779244 & 0.793195 & 0.769380 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从结果可以看出，DLGU-Net 在参数量仅由 7.85M 增加到 8.30M 的条件下，实现了对跳跃连接特征的显式增强，并保持了与 baseline 接近的整图性能水平。该结果说明，浅层特征重标定对道路提取是有效的结构方向。DLGU-Net 的意义并不局限于是否取得最高单项指标，更重要的是它验证了在轻量参数开销下通过跳跃连接增强来提升道路/背景判别能力的可行性。
+
+\begin{table}[htbp]
+\centering
+\caption{DLGU-Net 相对统一 baseline 的测试集指标差值}
+\label{tab:v2-dlgu-delta}
+\begin{tabular}{lcccc}
+\toprule
+比较项 & IoU 差值 & F1 差值 & Precision 差值 & Recall 差值 \\
+\midrule
+DLGU-Net $-$ Baseline & $-0.004030$ & $-0.003134$ & $+0.005461$ & $-0.010771$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+表 \ref{tab:v2-dlgu-delta} 进一步说明了 DLGU-Net 的行为特征。与 baseline 相比，DLGU-Net 的 Precision 提高，Recall 下降，说明其主要效果体现在背景抑制和误报控制方面。这与 DLAM 作用于跳跃连接的设计目标一致：浅层特征在经过重标定后，解码器接收到的非道路噪声响应减少，从而提高了预测的保守性和纯净度。
+
+\subsection{典型样本结果分析}
+从定性结果来看，DLGU-Net 在主干道路边界较清晰、周围背景纹理相对规则的样本中能够输出较为完整的道路掩膜，并在一定程度上抑制建筑边缘和地表纹理造成的误检。对于存在大量局部高频纹理的区域，DLAM 对浅层特征的筛选有助于削弱无关纹理对解码过程的干扰，使道路预测在视觉上更趋于集中。
+
+图 \ref{fig:v2-qualitative} 给出了典型测试样本上的多模型定性结果对比。从可视化结果可以观察到，DLGU-Net 在主干道路区域表现稳定，对部分复杂背景区域具有较好的响应抑制能力。在支路密集、纹理复杂或局部遮挡明显的场景中，DLGU-Net 能够维持较好的整体道路形态，但对细小支路的保留程度略低于 Recall 更高的模型。结合定量结果可以判断，DLGU-Net 的优势主要体现在“减少误报”而非“增加召回”。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{generated/qualitative_comparison.png}
+\caption{典型测试样本上的多模型预测结果对比}
+\label{fig:v2-qualitative}
+\end{figure}
+
+\section{结构对照与分析}
+\subsection{结构对照实验设置}
+严格意义上的组件级消融实验通常需要分别构建“仅保留通道分支”和“仅保留空间分支”等多组专门模型。当前本地完整材料中没有保存这类逐组件独立实验结果，因此本文采用同一 U-Net 主干框架下的结构对照方式开展分析。具体而言，将 Baseline U-Net、Attention U-Net、UNet++ 与 DLGU-Net 组织为同一对照组，四者共享统一数据集、统一训练配置和统一整图评估协议，只在跳跃连接利用方式上存在差异。
+
+这种对照方式仍然具有较强分析价值。Baseline U-Net 代表未经显式增强的标准跳跃连接；Attention U-Net 代表门控筛选策略；UNet++ 代表多路径嵌套融合策略；DLGU-Net 则代表通道与空间双重重标定策略。通过比较这四类模型，可以更清楚地观察不同跳跃连接增强方式在当前任务中的适配特征。
+
+\subsection{结构对照结果分析}
+表 \ref{tab:v2-dlgu-compare} 给出了四个模型的整图验证与测试结果。可以看到，四种结构都围绕跳跃连接展开改进，但各自体现出不同的性能倾向。UNet++ 在整图验证阶段取得较高的 Val IoU，说明嵌套跳跃连接有助于增强多层特征融合；Attention U-Net 具有较高的 Precision，体现出门控筛选对于背景抑制的积极作用；DLGU-Net 同样表现出较高 Precision，并在参数量保持轻量的前提下获得稳定测试结果。
+
+\begin{table}[htbp]
+\centering
+\caption{DLGU-Net 与同类跳跃连接增强模型的结果对比}
+\label{tab:v2-dlgu-compare}
+\begin{tabular}{lccccc}
+\toprule
+模型 & 参数量(M) & Val IoU & Test IoU & Test F1 & Test Precision \\
+\midrule
+Baseline U-Net & 7.85 & 0.629811 & 0.645964 & 0.782378 & 0.787734 \\
+Attention U-Net & 7.98 & 0.626849 & 0.636926 & 0.775462 & 0.798229 \\
+UNet++ & 8.30 & \textbf{0.630805} & 0.643158 & 0.780181 & 0.791030 \\
+DLGU-Net & 8.30 & 0.626136 & 0.641934 & 0.779244 & \textbf{0.793195} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从表中可以得到两点认识。第一，跳跃连接增强本身是一个合理研究方向，因为不同结构都能在接近 baseline 的参数规模附近形成可分析结果。第二，不同增强方式对应不同偏向：UNet++ 更强调层级特征融合，Attention U-Net 与 DLGU-Net 更强调背景抑制和噪声控制。对于本文主线而言，DLGU-Net 的意义在于其模块形式简洁、参数开销较低、实现位置明确，适合作为轻量注意力增强方向的代表模型。
+
+\section{训练稳定性与工程适配性分析}
+从训练历史可以看出，DLGU-Net 在统一工程条件下具有较好的训练适配性。其最佳 checkpoint 出现在第 11 个 epoch，随后训练过程保持稳定，没有出现数值异常或整图评估失效。这说明 DLAM 的引入没有破坏 baseline 的训练稳定性，主线模型能够直接纳入统一训练器和统一整图评估流程。
+
+图 \ref{fig:v2-training-curves} 展示了 Baseline U-Net、DLGU-Net、Dilated Baseline U-Net 与 Vanilla U-Net 的训练曲线。可以看到，DLGU-Net 的收敛轨迹整体平滑，与 baseline 处于同一量级。这意味着 DLAM 虽然增加了跳跃连接重标定能力，但并未导致优化过程出现剧烈波动。对于后续进一步研究而言，这一稳定性是十分重要的，因为只有在统一工程下可稳定训练的模型，才适合作为后续模块细化和参数搜索的基础。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{generated/training_curves_comparison.png}
+\caption{核心对比模型的收敛曲线对比}
+\label{fig:v2-training-curves}
+\end{figure}
+
+此外，DLGU-Net 的参数量为 8.30M，较 baseline 增加约 0.45M，增幅约 5.7\%。在这一参数开销水平下，模型完成了四级跳跃连接的显式增强，这使其在“模型复杂度控制”和“结构增强效果”之间取得了相对均衡的位置。与参数更大的重型结构相比，DLGU-Net 更适合作为轻量级注意力增强方案纳入遥感道路提取系统。
+
+\section{本章小结}
+本章围绕 DLGU-Net 展开系统分析。首先说明了主线模型围绕跳跃连接浅层特征重标定开展设计的研究动机，随后从通道重标定、空间方向增强和残差集成三个方面阐述了 DLAM 模块的具体实现方式，并给出了 DLGU-Net 在四级跳跃连接上的集成结构。接着，基于统一整图评估协议分析了 DLGU-Net 的验证与测试结果、与 baseline 的指标差值以及在典型样本上的表现特征。最后，通过与 Attention U-Net、UNet++ 的结构对照，以及对训练稳定性和参数开销的分析，明确了 DLGU-Net 在本文方法体系中的位置。综合来看，DLGU-Net 作为本文主线模型，完成了轻量级跳跃连接注意力增强路线的完整实现与验证。

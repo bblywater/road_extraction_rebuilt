@@ -1,3 +1,11 @@
 data/
 *.pth
 latex_thesis_xtu_template/.git_nested_backup/
+latex_thesis_xtu_template/*.aux
+latex_thesis_xtu_template/*.bbl
+latex_thesis_xtu_template/*.blg
+latex_thesis_xtu_template/*.lof
+latex_thesis_xtu_template/*.lot
+latex_thesis_xtu_template/*.log
+latex_thesis_xtu_template/*.out
+latex_thesis_xtu_template/*.toc
