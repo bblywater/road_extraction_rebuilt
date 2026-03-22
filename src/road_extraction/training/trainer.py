@@ -53,6 +53,12 @@ class Trainer:
                 step_size=scheduler_cfg.get("step_size", 10),
                 gamma=scheduler_cfg.get("gamma", 0.5),
             )
+        if scheduler_cfg.get("name", "").lower() == "cosine":
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=scheduler_cfg.get("T_max", config["training"]["epochs"]),
+                eta_min=scheduler_cfg.get("eta_min", 1e-6),
+            )
         if scheduler_cfg.get("name", "").lower() == "poly":
             total_epochs = max(1, int(config["training"]["epochs"]))
             power = float(scheduler_cfg.get("power", 0.9))
@@ -145,7 +151,7 @@ class Trainer:
                     print(
                         f"{phase}_step={step_idx}/{total_steps} "
                         f"loss={mean['loss']:.4f} iou={mean.get('iou', 0.0):.4f}"
-                    )
+                    , flush=True)
         return meter.mean()
 
     def _save_checkpoint(self, epoch: int, best: bool = False) -> None:
@@ -215,7 +221,7 @@ class Trainer:
                 f"train_loss={train_metrics['loss']:.4f} train_iou={train_metrics['iou']:.4f} "
                 f"val_loss={val_metrics['loss']:.4f} val_iou={val_metrics['iou']:.4f} "
                 f"lr={current_lr:.6f} time={time.time() - start_time:.1f}s"
-            )
+            , flush=True)
 
             metric_value = val_metrics[metric_name]
             if metric_value > self.best_metric + min_delta:

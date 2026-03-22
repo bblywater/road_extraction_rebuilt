@@ -5,6 +5,7 @@ from .baseline_unet import BaselineUNet
 from .dilated_baseline_unet import DilatedBaselineUNet
 from .ddu_net import DDUNet
 from .dlgu_net import DLGUNet
+from .dlgu_net_v2 import DLGUNetV2
 from .optimized_unet import OptimizedUNet
 from .resnet34_unet import ResNet34UNet
 from .residual_vanilla_unet import ResidualVanillaUNet
@@ -47,6 +48,13 @@ def build_model(config: dict):
             dlam_spatial_kernel=model_cfg.get("dlam", {}).get("spatial_kernel", 5),
             **common,
         )
+    if name == "dlgu_net_v2":
+        return DLGUNetV2(
+            dlam_reduction=model_cfg.get("dlam", {}).get("reduction", 16),
+            dlam_spatial_kernel=model_cfg.get("dlam", {}).get("spatial_kernel", 5),
+            apply_sigmoid=model_cfg.get("apply_sigmoid", False),
+            **common,
+        )
     if name == "ddu_net":
         decoder_channels = model_cfg.get("decoder_channels", [512, 256, 128, 64])
         return DDUNet(
@@ -71,6 +79,7 @@ __all__ = [
     "AttentionUNet",
     "OptimizedUNet",
     "DLGUNet",
+    "DLGUNetV2",
     "DDUNet",
     "build_model",
 ]
